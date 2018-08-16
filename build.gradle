@@ -53,6 +53,7 @@ sourceSets {
     main {
         proto {
             srcDir '../src/main/proto'
+            srcDir '../src/main/proto/v1'
         }
     }
 }

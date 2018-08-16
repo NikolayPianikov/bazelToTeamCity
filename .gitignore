@@ -1,3 +1,6 @@
 .gradle/
 build/
 out/
+sample/bazel-sample/
+sample/bazel-bin/
+sample/bazel-out/

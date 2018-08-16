@@ -1,3 +1,3 @@
 pushd sample
-bazel build :ProjectRunner --build_event_json_file out.json
+bazel build :ProjectRunner --bes_backend=localhost:54321
 popd
