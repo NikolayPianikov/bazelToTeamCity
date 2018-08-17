@@ -1,1 +1,3 @@
-rootProject.name = 'examples'
+rootProject.name='teamcity-bazel'
+
+include 'rx', 'bazelTeamCity'
