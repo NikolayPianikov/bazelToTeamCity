@@ -18,7 +18,7 @@ internal class BuildEventSource
     override fun subscribe(observer: Observer<OrderedBuildEvent>): Disposable = _eventSubject.subscribe(observer)
 
     override fun publishLifecycleEvent(request: PublishLifecycleEventRequest?, responseObserver: StreamObserver<Empty>?) {
-        logger.log(Level.FINE, "##publishLifecycleEvent: {0}", request)
+        logger.log(Level.FINE, "publishLifecycleEvent: $request")
         if (request?.hasBuildEvent() == true) {
             _eventSubject.onNext(request.buildEvent)
         }
@@ -29,7 +29,7 @@ internal class BuildEventSource
 
 
     override fun publishBuildToolEventStream(responseObserver: StreamObserver<PublishBuildToolEventStreamResponse>?): StreamObserver<PublishBuildToolEventStreamRequest> {
-        logger.log(Level.FINE, "##publishBuildToolEventStream: {0}", responseObserver)
+        logger.log(Level.FINE, "publishBuildToolEventStream: $responseObserver")
         val responses = responseObserver?.toObserver() ?: emptyObserver()
         return PublishEventObserver(responses, _eventSubject).toStreamObserver()
     }
@@ -44,7 +44,7 @@ internal class BuildEventSource
         : Observer<PublishBuildToolEventStreamRequest> {
 
         override fun onNext(value: PublishBuildToolEventStreamRequest) {
-            logger.log(Level.FINE, "##onNext: {0}", value)
+            logger.log(Level.FINE, "onNext: $value")
 
             if (value.hasOrderedBuildEvent()) {
                 if (value.orderedBuildEvent.event.hasComponentStreamFinished()) {
@@ -56,11 +56,11 @@ internal class BuildEventSource
         }
 
         override fun onError(error: Exception) {
-            logger.log(Level.FINE, "##onError: {0}", error)
+            logger.log(Level.FINE, "onError: $error")
         }
 
         override fun onCompleted() {
-            logger.log(Level.FINE, "##onCompleted")
+            logger.log(Level.FINE, "onCompleted")
         }
 
         companion object {

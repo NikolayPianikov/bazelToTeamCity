@@ -60,6 +60,7 @@ sourceSets {
         proto {
             srcDir 'src/main/proto'
             srcDir 'src/main/proto/v1'
+            srcDir 'src/main/proto/bazel'
         }
     }
 }
