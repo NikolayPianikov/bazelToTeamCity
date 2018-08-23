@@ -1,13 +1,12 @@
 package bazel
 
-import bazel.events.BuildFinished
 import bazel.events.OrderedBuildEvent
+import bazel.messages.ServiceMessageSubject
 import devteam.rx.*
 import io.grpc.Attributes
 import io.grpc.Server
 import io.grpc.ServerBuilder
 import io.grpc.ServerTransportFilter
-import jetbrains.buildServer.messages.serviceMessages.ServiceMessage
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -17,7 +16,7 @@ class GRpcServer<TProtoEvent>(
         service: io.grpc.BindableService,
         eventSource: Observable<TProtoEvent>,
         buildEventConverter: Converter<TProtoEvent, OrderedBuildEvent>,
-        serviceMessageConverter: Converter<OrderedBuildEvent, ServiceMessage>)
+        serviceMessageSubject: ServiceMessageSubject)
     : ServerTransportFilter(), Disposable {
 
     private val server: Server =
@@ -27,24 +26,21 @@ class GRpcServer<TProtoEvent>(
             .build()
             .start()
 
-    private val _subscription: Disposable = eventSource
-            .map { buildEventConverter.convert(it) }
-            .map { Pair(it, serviceMessageConverter.convert(it)) }
-            .subscribe(
-                {
-                    System.out.println(it.second)
-                    if (it.first is BuildFinished) {
+    private val _subscription: Disposable = disposableOf(
+            eventSource
+                    .map { buildEventConverter.convert(it) }
+                    .subscribe(serviceMessageSubject),
+
+            serviceMessageSubject.subscribe(
+                    System.out::println,
+                    {
+                        logger.log(Level.SEVERE, "Error", it)
                         shutdown()
-                    }
-                },
-                {
-                    logger.log(Level.SEVERE, "Error", it)
-                    shutdown()
-                },
-                {
-                    shutdown()
-                }
+                    },
+                    { shutdown() }
             )
+    )
+
 
     private val _connectionCounter = AtomicInteger()
 
