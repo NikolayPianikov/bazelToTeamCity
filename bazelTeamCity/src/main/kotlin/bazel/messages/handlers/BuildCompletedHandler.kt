@@ -12,14 +12,27 @@ class BuildCompletedHandler: EventHandler {
         get() = HandlerPriority.Low
 
     override fun handle(ctx: ServiceMessageContext) =
-        if (ctx.event is BazelEvent && ctx.event.content is BuildFinished) {
-            ctx.onNext(
-                    ctx.messageFactory.createMessage(
-                            ctx.buildMessage()
-                                    .append("Build finished", Verbosity.Minimal)
-                                    .append(", exit code: ${ctx.event.content.exitCode}", Verbosity.Normal)
-                                    .append(" - ${ctx.event.content.exitCodeName}", Verbosity.Detailed)
-                                    .toString()))
+        if (ctx.event.payload is BazelEvent && ctx.event.payload.content is BuildFinished) {
+            val event = ctx.event.payload.content
+            ctx.createBlock("result", "", event.children)
+
+            val exitCode = event.exitCode
+            if (exitCode == 0) {
+                ctx.onNext(ctx.messageFactory.createMessage(
+                        ctx.buildMessage()
+                            .append("Build finished", Verbosity.Minimal)
+                            .append(", exit code: ${event.exitCode}", Verbosity.Normal)
+                            .append("(${event.exitCodeName})", Verbosity.Detailed)
+                            .toString()))
+            } else {
+                ctx.onNext(ctx.messageFactory.createErrorMessage(
+                        ctx.buildMessage()
+                        .append("Build failed", Verbosity.Minimal)
+                        .append(", exit code: ${event.exitCode}", Verbosity.Normal)
+                        .append("(${event.exitCodeName})", Verbosity.Detailed)
+                        .toString()))
+            }
+
             true
         } else ctx.handlerIterator.next().handle(ctx)
 }

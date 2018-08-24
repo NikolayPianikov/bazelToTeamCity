@@ -3,9 +3,9 @@ package bazel.messages
 import jetbrains.buildServer.messages.serviceMessages.MessageWithAttributes
 import jetbrains.buildServer.messages.serviceMessages.ServiceMessageTypes
 
-class FlowStarted(flowId: String, parentFlowId: String)
+class BuildProblem(description: String, identity: String)
     : MessageWithAttributes(
-        ServiceMessageTypes.FLOW_STARTED,
+        ServiceMessageTypes.BUILD_PORBLEM,
         mapOf(
-                "flowId" to flowId,
-                "parent" to parentFlowId))
+                "description" to description,
+                "identity" to identity))

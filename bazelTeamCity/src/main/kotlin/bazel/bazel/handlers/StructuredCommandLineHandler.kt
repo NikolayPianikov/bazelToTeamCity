@@ -12,6 +12,6 @@ class StructuredCommandLineHandler: BazelHandler {
                 StructuredCommandLine(
                         ctx.id,
                         ctx.children,
-                        content.commandLineLabel)
+                        if(content.commandLineLabel.isNotEmpty()) content.commandLineLabel else "tool" )
             } else ctx.handlerIterator.next().handle(ctx)
 }

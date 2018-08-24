@@ -11,12 +11,15 @@ class InvocationAttemptStartedHandler: EventHandler {
         get() = HandlerPriority.Low
 
     override fun handle(ctx: ServiceMessageContext) =
-        if (ctx.event is InvocationAttemptStarted) {
+        if (ctx.event.payload is InvocationAttemptStarted) {
             if (ctx.verbosity.atLeast(Verbosity.Normal)) {
-                ctx.onNext(ctx.messageFactory.createMessage(ctx.buildMessage().append("Invocation attempt #${ctx.event.attemptNumber} started").toString()))
+                ctx.onNext(ctx.messageFactory.createMessage(
+                        ctx.buildMessage()
+                                .append("Invocation attempt #${ctx.event.payload.attemptNumber} started")
+                                .toString()))
             }
 
-            ctx.onNext(ctx.messageFactory.createFlowStarted(ctx.event.streamId.invocationId, ctx.event.streamId.buildId))
+            ctx.onNext(ctx.messageFactory.createFlowStarted(ctx.event.payload.streamId.invocationId, ctx.event.payload.streamId.buildId))
             true
         } else ctx.handlerIterator.next().handle(ctx)
 }

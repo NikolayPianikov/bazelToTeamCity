@@ -14,8 +14,8 @@ import java.util.logging.Logger
 class GRpcServer<TProtoEvent>(
         port: Int,
         service: io.grpc.BindableService,
-        eventSource: Observable<TProtoEvent>,
-        buildEventConverter: Converter<TProtoEvent, OrderedBuildEvent>,
+        eventSource: Observable<Event<TProtoEvent>>,
+        buildEventConverter: Converter<Event<TProtoEvent>, Event<OrderedBuildEvent>>,
         serviceMessageSubject: ServiceMessageSubject)
     : ServerTransportFilter(), Disposable {
 

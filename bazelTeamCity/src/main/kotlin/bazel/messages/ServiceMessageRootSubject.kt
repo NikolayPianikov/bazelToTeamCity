@@ -1,5 +1,6 @@
 package bazel.messages
 
+import bazel.Event
 import bazel.events.BuildFinished
 import bazel.events.OrderedBuildEvent
 import devteam.rx.Disposable
@@ -7,10 +8,10 @@ import devteam.rx.Observer
 import jetbrains.buildServer.messages.serviceMessages.ServiceMessage
 
 class ServiceMessageRootSubject(private val _streamsSubject: ServiceMessageSubject): ServiceMessageSubject {
-    override fun onNext(value: OrderedBuildEvent) {
+    override fun onNext(value: Event<OrderedBuildEvent>) {
         _streamsSubject.onNext(value)
 
-        if (value is BuildFinished) {
+        if (value.payload is BuildFinished) {
             onCompleted()
         }
     }

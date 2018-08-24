@@ -1,24 +1,30 @@
 package bazel.v1
 
+import bazel.Event
 import bazel.toObserver
 import bazel.toStreamObserver
 import com.google.devtools.build.v1.*
 import com.google.protobuf.Empty
 import devteam.rx.*
 import io.grpc.stub.StreamObserver
+import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 import java.util.logging.Logger
 
 internal class BuildEventSource
-    : PublishBuildEventGrpc.PublishBuildEventImplBase(), Observable<OrderedBuildEvent>{
+    : PublishBuildEventGrpc.PublishBuildEventImplBase(), Observable<Event<OrderedBuildEvent>>{
 
-    private val _eventSubject = subjectOf<OrderedBuildEvent>()
+    private val _eventSubject = subjectOf<Event<OrderedBuildEvent>>()
+    private val _projectId = AtomicReference<String>("")
 
-    override fun subscribe(observer: Observer<OrderedBuildEvent>): Disposable = _eventSubject.subscribe(observer)
+    override fun subscribe(observer: Observer<Event<OrderedBuildEvent>>): Disposable = _eventSubject.subscribe(observer)
 
     override fun publishLifecycleEvent(request: PublishLifecycleEventRequest?, responseObserver: StreamObserver<Empty>?) {
         logger.log(Level.FINE, "publishLifecycleEvent: $request")
-        if (request?.hasBuildEvent() == true) _eventSubject.onNext(request.buildEvent)
+
+        _projectId.compareAndSet("", request?.projectId ?: "")
+
+        if (request?.hasBuildEvent() == true) _eventSubject.onNext(Event(_projectId.get(), request.buildEvent))
         responseObserver?.let {
             it.onNext(Empty.getDefaultInstance())
             it.onCompleted()
@@ -28,7 +34,7 @@ internal class BuildEventSource
     override fun publishBuildToolEventStream(responseObserver: StreamObserver<PublishBuildToolEventStreamResponse>?): StreamObserver<PublishBuildToolEventStreamRequest> {
         logger.log(Level.FINE, "publishBuildToolEventStream: $responseObserver")
         val responses = responseObserver?.toObserver() ?: emptyObserver()
-        return PublishEventObserver(responses, _eventSubject).toStreamObserver()
+        return PublishEventObserver(_projectId.get(), responses, _eventSubject).toStreamObserver()
     }
 
     companion object {
@@ -36,8 +42,9 @@ internal class BuildEventSource
     }
 
     private class PublishEventObserver(
+            private val _projectId: String,
             private val _responseObserver: Observer<PublishBuildToolEventStreamResponse>,
-            private val _eventObserver: Observer<OrderedBuildEvent>)
+            private val _eventObserver: Observer<Event<OrderedBuildEvent>>)
         : Observer<PublishBuildToolEventStreamRequest> {
 
         override fun onNext(value: PublishBuildToolEventStreamRequest) {
@@ -48,7 +55,7 @@ internal class BuildEventSource
                 return
             }
 
-            _eventObserver.onNext(value.orderedBuildEvent)
+            _eventObserver.onNext(Event(_projectId, value.orderedBuildEvent))
 
             if (value.orderedBuildEvent.event.hasComponentStreamFinished()) {
                 logger.log(Level.FINE, "The ComponentStreamFinished event was received.")

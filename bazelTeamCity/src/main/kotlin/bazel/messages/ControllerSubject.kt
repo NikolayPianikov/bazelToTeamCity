@@ -1,7 +1,8 @@
 package bazel.messages
 
+import bazel.Event
 import bazel.Verbosity
-import bazel.events.OrderedBuildEvent
+import bazel.events.*
 import bazel.messages.handlers.*
 import devteam.rx.*
 import jetbrains.buildServer.messages.serviceMessages.ServiceMessage
@@ -16,21 +17,25 @@ class ControllerSubject(
     private val _streams = mutableMapOf<String, Stream>()
     private val _disposed: AtomicBoolean = AtomicBoolean()
 
-    override fun onNext(value: OrderedBuildEvent) {
+    override fun onNext(value: Event<OrderedBuildEvent>) {
         if (_disposed.get()) {
             return
         }
 
+        val invocationId = value.payload.streamId.invocationId
         val handlerIterator = handlers.iterator()
         val subject = subjectOf<ServiceMessage>()
-        subject.map { updateHeader(value, it) }.subscribe(_controllerSubject).use {
+        subject.map { updateHeader(value.payload, it) }.subscribe(_controllerSubject).use {
             val processed = handlerIterator.next().handle(ServiceMessageContext(subject, handlerIterator, value, _messageFactory, _verbosity))
             if (processed) {
-                return
+                if (value.payload is InvocationAttemptFinished) {
+                    // remove stream state
+                    _streams.remove(invocationId)
+                }
             }
         }
 
-        _streams.getOrPut(value.streamId.invocationId) { createStreamSubject() }.subject.onNext(value)
+        _streams.getOrPut(value.payload.streamId.invocationId) { createStreamSubject() }.subject.onNext(value)
     }
 
     override fun onError(error: Exception) = _controllerSubject.onError(error)

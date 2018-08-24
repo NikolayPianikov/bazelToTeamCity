@@ -11,16 +11,17 @@ class BuildStartedHandler: EventHandler {
         get() = HandlerPriority.Low
 
     override fun handle(ctx: ServiceMessageContext) =
-        if (ctx.event is BazelEvent && ctx.event.content is BuildStarted) {
-            ctx.onNext(
-                    ctx.messageFactory.createMessage(
-                            ctx.buildMessage()
-                                    .append("Build started", Verbosity.Minimal)
-                                    .append(" by command \"${ctx.event.content.command}\"", Verbosity.Normal)
-                                    .append(" v${ctx.event.content.buildToolVersion}", Verbosity.Detailed)
-                                    .append(", directory: \"${ctx.event.content.workingDirectory}\"", Verbosity.Detailed)
-                                    .append(", workspace: \"${ctx.event.content.workspaceDirectory}\"", Verbosity.Detailed)
-                                    .toString()))
+        if (ctx.event.payload is BazelEvent && ctx.event.payload.content is BuildStarted) {
+            val event = ctx.event.payload.content
+            val description = ctx.buildMessage(false)
+                    .append("Build started", Verbosity.Minimal)
+                    .append(" by command \"${event.command}\"", Verbosity.Normal)
+                    .append(" v${event.buildToolVersion}", Verbosity.Detailed)
+                    .append(", directory: \"${event.workingDirectory}\"", Verbosity.Detailed)
+                    .append(", workspace: \"${event.workspaceDirectory}\"", Verbosity.Detailed)
+                    .toString()
+            ctx.createBlock(event.command, description, event.children)
+            ctx.onNext(ctx.messageFactory.createBuildStatus(ctx.buildMessage().append(description).toString()))
             true
         } else ctx.handlerIterator.next().handle(ctx)
 }

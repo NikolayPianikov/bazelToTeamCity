@@ -10,8 +10,8 @@ class BuildEnqueuedHandler: EventHandler {
         get() = HandlerPriority.Low
 
     override fun handle(ctx: ServiceMessageContext) =
-        if (ctx.event is BuildEnqueued) {
-            ctx.onNext(ctx.messageFactory.createMessage(
+        if (ctx.event.payload is BuildEnqueued) {
+            ctx.onNext(ctx.messageFactory.createBuildStatus(
                     ctx.buildMessage()
                             .append("Build enqueued")
                             .append(" ${ctx.event}", Verbosity.Normal)

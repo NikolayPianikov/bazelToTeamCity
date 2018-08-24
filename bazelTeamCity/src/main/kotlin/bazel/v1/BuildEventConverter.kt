@@ -1,6 +1,7 @@
 package bazel.v1
 
 import bazel.Converter
+import bazel.Event
 import bazel.bazel.converters.BazelEventConverter
 import bazel.events.OrderedBuildEvent
 import bazel.events.StreamId
@@ -15,19 +16,21 @@ import java.util.logging.Logger
 
 class BuildEventConverter(
         private val _streamIdConverter: Converter<com.google.devtools.build.v1.StreamId, StreamId>)
-    : Converter<com.google.devtools.build.v1.OrderedBuildEvent, OrderedBuildEvent> {
-    override fun convert(source: com.google.devtools.build.v1.OrderedBuildEvent): OrderedBuildEvent {
-        val streamId = if (source.hasStreamId()) _streamIdConverter.convert(source.streamId) else StreamId.default
-        if (source.hasEvent()) {
-            val event = source.event
-            val sequenceNumber = source.sequenceNumber
+    : Converter<Event<com.google.devtools.build.v1.OrderedBuildEvent>, Event<OrderedBuildEvent>> {
+    override fun convert(source: Event<com.google.devtools.build.v1.OrderedBuildEvent>): Event<OrderedBuildEvent> {
+        val payload = source.payload
+        val streamId = if (payload.hasStreamId()) _streamIdConverter.convert(payload.streamId) else StreamId.default
+        if (payload.hasEvent()) {
+            val event = payload.event
+            val sequenceNumber = payload.sequenceNumber
             val eventTime = Timestamp(event.eventTime.seconds, event.eventTime.nanos)
             val handlersIterator = handlers.iterator()
-            return handlersIterator.next().handle(HandlerContext(handlersIterator, streamId, sequenceNumber, eventTime, event))
+            val convertedPayload = handlersIterator.next().handle(HandlerContext(handlersIterator, streamId, sequenceNumber, eventTime, event))
+            return Event(source.projectId, convertedPayload)
         }
 
         logger.log(Level.SEVERE, "Unknown event: $source")
-        return UnknownEvent(streamId)
+        return Event(source.projectId, UnknownEvent(streamId))
     }
 
     companion object {
