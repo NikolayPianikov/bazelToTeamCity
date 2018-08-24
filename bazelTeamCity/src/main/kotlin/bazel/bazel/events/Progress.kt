@@ -7,5 +7,9 @@ package bazel.bazel.events
 data class Progress(
         override val id: Id,
         override val children: List<Id>,
+        // The next chunk of stdout that bazel produced since the last progress event
+        // or the beginning of the build.
         val stdout: String,
+        // The next chunk of stderr that bazel produced since the last progress event
+        // or the beginning of the build.
         val stderr: String) : BazelContent

@@ -7,4 +7,5 @@ package bazel.bazel.events
 data class NamedSetOfFiles(
         override val id: Id,
         override val children: List<Id>,
+        // Files that belong to this named set of files.
         val files: MutableList<File>) : BazelContent

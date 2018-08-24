@@ -1,5 +1,7 @@
 package bazel.bazel.events
 
+// Payload of an event reporting on the parsed options, grouped in various ways.
+
 data class OptionsParsed(
         override val id: Id,
         override val children: List<Id>,

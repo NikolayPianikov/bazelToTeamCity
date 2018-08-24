@@ -9,5 +9,7 @@ data class TargetComplete(
         override val children: List<Id>,
         val label: String,
         val success: Boolean,
+        // List of tags associated with this configured target.
         val tags: List<String>,
+        // The timeout specified for test actions under this configured target.
         val testTimeoutSeconds: Long) : BazelContent

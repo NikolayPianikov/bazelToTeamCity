@@ -10,6 +10,10 @@ data class TargetConfigured(
         override val children: List<Id>,
         val label: String,
         val aspect: String,
+        // The kind of target (e.g.,  e.g. "cc_library rule", "source file",
+        // "generated file") where the completion is reported.
         val targetKind: String,
+        // The size of the test, if the target is a test target. Unset otherwise.
         val testSize: TestSize,
+        // List of all tags associated with this target (for all possible configurations).
         val tags: List<String>) : BazelContent
