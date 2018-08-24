@@ -8,7 +8,6 @@ import devteam.rx.*
 import io.grpc.stub.StreamObserver
 import java.util.logging.Level
 import java.util.logging.Logger
-import com.google.devtools.build.v1.OrderedBuildEvent
 
 internal class BuildEventSource
     : PublishBuildEventGrpc.PublishBuildEventImplBase(), Observable<OrderedBuildEvent>{
@@ -19,14 +18,12 @@ internal class BuildEventSource
 
     override fun publishLifecycleEvent(request: PublishLifecycleEventRequest?, responseObserver: StreamObserver<Empty>?) {
         logger.log(Level.FINE, "publishLifecycleEvent: $request")
-        if (request?.hasBuildEvent() == true) {
-            _eventSubject.onNext(request.buildEvent)
+        if (request?.hasBuildEvent() == true) _eventSubject.onNext(request.buildEvent)
+        responseObserver?.let {
+            it.onNext(Empty.getDefaultInstance())
+            it.onCompleted()
         }
-
-        responseObserver?.onNext(Empty.getDefaultInstance())
-        responseObserver?.onCompleted()
     }
-
 
     override fun publishBuildToolEventStream(responseObserver: StreamObserver<PublishBuildToolEventStreamResponse>?): StreamObserver<PublishBuildToolEventStreamRequest> {
         logger.log(Level.FINE, "publishBuildToolEventStream: $responseObserver")
@@ -46,21 +43,27 @@ internal class BuildEventSource
         override fun onNext(value: PublishBuildToolEventStreamRequest) {
             logger.log(Level.FINE, "onNext: $value")
 
-            if (value.hasOrderedBuildEvent()) {
-                if (value.orderedBuildEvent.event.hasComponentStreamFinished()) {
-                    _responseObserver.onCompleted()
-                }
+            if (!value.hasOrderedBuildEvent()) {
+                logger.log(Level.SEVERE, "OrderedBuildEvent was not found.")
+                return
+            }
 
-                _eventObserver.onNext(value.orderedBuildEvent)
+            _eventObserver.onNext(value.orderedBuildEvent)
+
+            if (value.orderedBuildEvent.event.hasComponentStreamFinished()) {
+                logger.log(Level.FINE, "The ComponentStreamFinished event was received.")
+                _responseObserver.onCompleted()
             }
         }
 
         override fun onError(error: Exception) {
             logger.log(Level.FINE, "onError: $error")
+            _eventObserver.onError(error)
         }
 
         override fun onCompleted() {
             logger.log(Level.FINE, "onCompleted")
+            _eventObserver.onCompleted()
         }
 
         companion object {

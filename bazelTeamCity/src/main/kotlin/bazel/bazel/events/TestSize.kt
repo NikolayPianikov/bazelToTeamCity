@@ -1,9 +1,9 @@
 package bazel.bazel.events
 
-enum class TestSize(private val _id: Int) {
-    Unknown(0),
-    Small(1),
-    Medium(2),
-    Large(3),
-    Enormous(4),
+enum class TestSize {
+    Unknown,
+    Small,
+    Medium,
+    Large,
+    Enormous,
 }

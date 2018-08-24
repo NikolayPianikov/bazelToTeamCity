@@ -1,5 +1,6 @@
 package bazel.messages
 
+import bazel.Verbosity
 import bazel.events.OrderedBuildEvent
 import bazel.messages.handlers.EventHandler
 import devteam.rx.Observer
@@ -9,7 +10,8 @@ class ServiceMessageContext(
         private val _observer: Observer<ServiceMessage>,
         val handlerIterator: Iterator<EventHandler>,
         val event: OrderedBuildEvent,
-        val messageFactory: MessageFactory ): Observer<ServiceMessage> {
+        val messageFactory: MessageFactory,
+        val verbosity: Verbosity): Observer<ServiceMessage> {
     override fun onNext(value: ServiceMessage) = _observer.onNext(value)
 
     override fun onError(error: Exception) = _observer.onError(error)

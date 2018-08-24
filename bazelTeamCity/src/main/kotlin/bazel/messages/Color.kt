@@ -1,6 +1,6 @@
 package bazel.messages
 
-enum class Color(color: String) {
+enum class Color(val color: String) {
     Default(""),
     BuildStage("36;1"),
     Success("32;1"),

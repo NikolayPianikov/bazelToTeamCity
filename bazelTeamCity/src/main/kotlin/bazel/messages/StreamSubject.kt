@@ -1,20 +1,23 @@
 package bazel.messages
 
+import bazel.Verbosity
 import bazel.events.OrderedBuildEvent
-import bazel.messages.handlers.BuildEnqueuedHandler
-import bazel.messages.handlers.BuildFinishedHandler
-import bazel.messages.handlers.UnknownEventHandler
-import devteam.rx.Disposable
-import devteam.rx.Observer
-import devteam.rx.subjectOf
+import bazel.messages.handlers.*
+import devteam.rx.*
 import jetbrains.buildServer.messages.serviceMessages.ServiceMessage
 
-class StreamSubject(private val _messageFactory: MessageFactory): ServiceMessageSubject {
+class StreamSubject(
+        private val _verbosity: Verbosity,
+        private val _messageFactory: MessageFactory)
+    : ServiceMessageSubject {
     private val _messageSubject = subjectOf<ServiceMessage>()
 
     override fun onNext(value: OrderedBuildEvent) {
-        val handlerIterator = handlers.iterator();
-        handlerIterator.next().handle(ServiceMessageContext(_messageSubject, handlerIterator, value, _messageFactory))
+        val handlerIterator = handlers.iterator()
+        val subject = subjectOf<ServiceMessage>()
+        subject.map { updateHeader(value, it) }.subscribe(_messageSubject).use {
+            handlerIterator.next().handle(ServiceMessageContext(subject, handlerIterator, value, _messageFactory, _verbosity))
+        }
     }
 
     override fun onError(error: Exception) = _messageSubject.onError(error)
@@ -25,10 +28,19 @@ class StreamSubject(private val _messageFactory: MessageFactory): ServiceMessage
 
     override fun dispose() = Unit
 
+    private fun updateHeader(event: OrderedBuildEvent, message: ServiceMessage): ServiceMessage {
+        if (message.flowId.isNullOrEmpty()) {
+            message.setFlowId(event.streamId.invocationId)
+        }
+
+        // message.setTimestamp(event.eventTime)
+        return message
+    }
+
     companion object {
         private val handlers = sequenceOf(
-                BuildEnqueuedHandler(),
-                BuildFinishedHandler(),
+                BuildStartedHandler(),
+                BuildCompletedHandler(),
                 UnknownEventHandler()
         ).sortedBy { it.priority }.toList()
     }

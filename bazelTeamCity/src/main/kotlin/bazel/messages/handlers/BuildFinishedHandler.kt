@@ -1,12 +1,9 @@
 package bazel.messages.handlers
 
 import bazel.HandlerPriority
-import bazel.events.BuildEnqueued
 import bazel.events.BuildFinished
 import bazel.events.BuildStatus
-import bazel.messages.Color
 import bazel.messages.ServiceMessageContext
-import jetbrains.buildServer.messages.serviceMessages.Message
 
 class BuildFinishedHandler: EventHandler {
     override val priority: HandlerPriority
@@ -14,19 +11,29 @@ class BuildFinishedHandler: EventHandler {
 
     override fun handle(ctx: ServiceMessageContext) =
         if (ctx.event is BuildFinished) {
+            @Suppress("NON_EXHAUSTIVE_WHEN")
             when (ctx.event.result.status) {
-                BuildStatus.CommandSucceeded -> ctx.onNext(ctx.messageFactory.createMessage("Build finished"))
-                BuildStatus.Cancelled -> ctx.onNext(ctx.messageFactory.createWarningMessage("Build cancelled"))
+                BuildStatus.CommandSucceeded -> ctx.onNext(
+                        ctx.messageFactory.createMessage(
+                                ctx.buildMessage()
+                                        .append("Build finished")
+                                        .toString()))
+                BuildStatus.Cancelled -> ctx.onNext(
+                        ctx.messageFactory.createWarningMessage(
+                                ctx.buildMessage()
+                                        .append("Build canceled")
+                                        .toString()))
                 BuildStatus.CommandFailed,
                 BuildStatus.SystemError,
                 BuildStatus.UserError,
                 BuildStatus.ResourceExhausted,
                 BuildStatus.InvocationDeadlineExceeded,
                 BuildStatus.RequestDeadlineExceeded
-                    -> ctx.onNext(ctx.messageFactory.createErrorMessage("Build failed", ctx.event.result.status.description))
-                else -> Unit
+                    -> ctx.onNext(ctx.messageFactory.createErrorMessage(
+                        ctx.buildMessage()
+                                .append("Build failed")
+                                .toString(), ctx.event.result.status.description))
             }
-        }
-
-        else ctx.handlerIterator.next().handle(ctx)
+            true
+        } else ctx.handlerIterator.next().handle(ctx)
 }
