@@ -3,9 +3,11 @@ package bazel.messages
 import jetbrains.buildServer.messages.serviceMessages.ServiceMessage
 
 interface MessageFactory {
-    fun createMessage(text: String, color: Color = Color.Default): ServiceMessage
+    fun createMessage(text: String): ServiceMessage
 
-    fun createWarningMessage(warning: String, color: Color = Color.Warning): ServiceMessage
+    fun createTraceMessage(text: String): ServiceMessage
+
+    fun createWarningMessage(warning: String): ServiceMessage
 
     fun createErrorMessage(error: String, errorDetails: String? = null): ServiceMessage
 

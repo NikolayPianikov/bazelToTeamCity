@@ -36,6 +36,6 @@ class OptionsParsedHandler: BazelHandler {
                         cmdLines,
                         explicitCmdLines,
                         startupOptions,
-                        explicitCmdLines)
+                        explicitStartupOptions)
             } else ctx.handlerIterator.next().handle(ctx)
 }

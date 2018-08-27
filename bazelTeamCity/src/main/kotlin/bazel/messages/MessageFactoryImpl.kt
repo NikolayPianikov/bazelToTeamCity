@@ -1,16 +1,20 @@
 package bazel.messages
 
+import bazel.messages.handlers.clean
 import jetbrains.buildServer.messages.serviceMessages.*
 
 class MessageFactoryImpl : MessageFactory {
-    override fun createMessage(text: String, color: Color) =
-            Message(text, Normal, null)
+    override fun createMessage(text: String) =
+            Message(text.clean(), Normal, null)
 
-    override fun createWarningMessage(warning: String, color: Color) =
-            Message(warning, Normal, null)
+    override fun createTraceMessage(text: String) =
+            Message("TRACE: ".apply(Color.Trace) + text.clean().replace("\n", "").replace("\r", ""), Normal, null)
+
+    override fun createWarningMessage(warning: String) =
+            Message(warning.clean(), Normal, null)
 
     override fun createErrorMessage(error: String, errorDetails: String?) =
-            Message(error, Error, errorDetails)
+            Message(error.clean(), Error, errorDetails)
 
     override fun createFlowStarted(flowId: String, parentFlowId: String) =
             FlowStarted(flowId, parentFlowId)
@@ -19,13 +23,13 @@ class MessageFactoryImpl : MessageFactory {
             FlowFinished(flowId)
 
     override fun createBuildStatus(text: String, success: Boolean) =
-            BuildStatus(text, if(success) Normal else Error)
+            BuildStatus(text.clean(), if(success) Normal else Error)
 
     override fun createBuildProblem(description: String, projectId: String, errorId: String) =
-            BuildProblem(description, "$projectId-$errorId")
+            BuildProblem(description.clean(), "$projectId-$errorId".take(60))
 
     override fun createBlockOpened(blockName: String, description: String): ServiceMessage {
-        return BlockOpened(blockName, description)
+        return BlockOpened(blockName, description.clean())
     }
 
     override fun createBlockClosed(blockName: String): ServiceMessage {

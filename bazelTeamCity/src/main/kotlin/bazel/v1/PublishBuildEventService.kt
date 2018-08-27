@@ -1,5 +1,6 @@
 package bazel.v1
 
+import bazel.BindableEventService
 import bazel.Event
 import bazel.toObserver
 import bazel.toStreamObserver
@@ -11,8 +12,8 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 import java.util.logging.Logger
 
-internal class BuildEventSource
-    : PublishBuildEventGrpc.PublishBuildEventImplBase(), Observable<Event<OrderedBuildEvent>>{
+internal class PublishBuildEventService
+    : PublishBuildEventGrpc.PublishBuildEventImplBase(), BindableEventService<OrderedBuildEvent>{
 
     private val _eventSubject = subjectOf<Event<OrderedBuildEvent>>()
     private val _projectId = AtomicReference<String>("")
@@ -38,7 +39,7 @@ internal class BuildEventSource
     }
 
     companion object {
-        private val logger = Logger.getLogger(BuildEventSource::class.java.name)
+        private val logger = Logger.getLogger(PublishBuildEventService::class.java.name)
     }
 
     private class PublishEventObserver(

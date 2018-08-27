@@ -1,8 +1,7 @@
 package bazel
 
-import bazel.events.OrderedBuildEvent
-import bazel.messages.ServiceMessageSubject
-import devteam.rx.*
+import devteam.rx.Disposable
+import devteam.rx.disposableOf
 import io.grpc.Attributes
 import io.grpc.Server
 import io.grpc.ServerBuilder
@@ -11,47 +10,39 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Level
 import java.util.logging.Logger
 
-class GRpcServer<TProtoEvent>(
-        port: Int,
-        service: io.grpc.BindableService,
-        eventSource: Observable<Event<TProtoEvent>>,
-        buildEventConverter: Converter<Event<TProtoEvent>, Event<OrderedBuildEvent>>,
-        serviceMessageSubject: ServiceMessageSubject)
-    : ServerTransportFilter(), Disposable {
+class GRpcServer(private val _port: Int)
+    : ServerTransportFilter() {
 
-    private val server: Server =
-            ServerBuilder.forPort(port)
-            .addService(service)
-            .addTransportFilter(this)
-            .build()
-            .start()
-
-    private val _subscription: Disposable = disposableOf(
-            eventSource
-                    .map { buildEventConverter.convert(it) }
-                    .subscribe(serviceMessageSubject),
-
-            serviceMessageSubject.subscribe(
-                    System.out::println,
-                    {
-                        logger.log(Level.SEVERE, "Error", it)
-                        shutdown()
-                    },
-                    { shutdown() }
-            )
-    )
-
-
+    private var _server: Server? = null
     private val _connectionCounter = AtomicInteger()
 
-    init {
-        logger.log(Level.INFO, "Server started, listening on {0}", port)
+
+    fun start(bindableService: io.grpc.BindableService): Disposable {
+        _server = ServerBuilder.forPort(_port)
+                .addTransportFilter(this)
+                .addService(bindableService)
+                .build()
+                .start()
+
+        logger.log(Level.INFO, "Server started, listening on {0}", _port)
+        return disposableOf {
+            _server?.awaitTermination()
+            logger.log(Level.INFO, "Server shut down")
+        }
     }
 
-    override fun dispose() {
-        server.awaitTermination()
-        logger.log(Level.INFO, "Server shut down")
-        _subscription.dispose()
+    fun shutdown() {
+        val shutdownTread = object : Thread() {
+            override fun run() {
+                _server?.let {
+                    logger.log(Level.INFO, "Server shutting down")
+                    it.shutdownNow()
+                }
+            }
+        }
+
+        shutdownTread.start()
+        shutdownTread.join()
     }
 
     override fun transportReady(transportAttrs: Attributes?): Attributes {
@@ -70,18 +61,6 @@ class GRpcServer<TProtoEvent>(
         {
             shutdown()
         }
-    }
-
-    private fun shutdown() {
-        val shutdownTread = object : Thread() {
-            override fun run() {
-                logger.log(Level.INFO, "Server shutting down")
-                server.shutdownNow()
-            }
-        }
-
-        shutdownTread.start()
-        shutdownTread.join()
     }
 
     companion object {

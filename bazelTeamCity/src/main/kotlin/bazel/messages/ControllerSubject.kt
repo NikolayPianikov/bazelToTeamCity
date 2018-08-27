@@ -2,6 +2,7 @@ package bazel.messages
 
 import bazel.Event
 import bazel.Verbosity
+import bazel.atLeast
 import bazel.events.*
 import bazel.messages.handlers.*
 import devteam.rx.*
@@ -11,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ControllerSubject(
         private val _verbosity: Verbosity,
         private val _messageFactory: MessageFactory,
+        private val _blockManager: BlockManager,
         private val _streamSubjectFactory: () -> ServiceMessageSubject)
     : ServiceMessageSubject {
     private val _controllerSubject = subjectOf<ServiceMessage>()
@@ -25,13 +27,21 @@ class ControllerSubject(
         val invocationId = value.payload.streamId.invocationId
         val handlerIterator = handlers.iterator()
         val subject = subjectOf<ServiceMessage>()
+        val ctx = ServiceMessageContext(subject, handlerIterator, value, _messageFactory, _blockManager, _verbosity)
         subject.map { updateHeader(value.payload, it) }.subscribe(_controllerSubject).use {
-            val processed = handlerIterator.next().handle(ServiceMessageContext(subject, handlerIterator, value, _messageFactory, _verbosity))
+            val processed = handlerIterator.next().handle(ctx)
+
             if (processed) {
+                if (_verbosity.atLeast(Verbosity.Trace)) {
+                    subject.onNext(_messageFactory.createTraceMessage(value.payload.toString()))
+                }
+
                 if (value.payload is InvocationAttemptFinished) {
                     // remove stream state
                     _streams.remove(invocationId)
                 }
+
+                return
             }
         }
 
@@ -82,6 +92,7 @@ class ControllerSubject(
                 InvocationAttemptStartedHandler(),
                 InvocationAttemptFinishedHandler(),
                 BuildFinishedHandler(),
+                ComponentStreamFinishedHandler(),
                 NotProcessedEventHandler()
         ).sortedBy { it.priority }.toList()
     }

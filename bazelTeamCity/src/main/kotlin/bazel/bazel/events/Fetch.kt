@@ -7,4 +7,5 @@ package bazel.bazel.events
 data class Fetch(
         override val id: Id,
         override val children: List<Id>,
+        val url: String,
         val success: Boolean) : BazelContent
