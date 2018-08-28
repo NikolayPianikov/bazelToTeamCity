@@ -20,7 +20,7 @@ fun main(args: Array<String>) {
 
     BesServer(
             54321,
-            Verbosity.Trace,
+            Verbosity.Detailed,
             PublishBuildEventService(),
             BuildEventConverter(StreamIdConverter(BuildComponentConverter())))
             .subscribe { writeLine(it) }.use {  }

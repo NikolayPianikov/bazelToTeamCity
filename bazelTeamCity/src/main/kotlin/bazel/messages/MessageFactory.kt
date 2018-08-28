@@ -7,8 +7,6 @@ interface MessageFactory {
 
     fun createTraceMessage(text: String): ServiceMessage
 
-    fun createWarningMessage(warning: String): ServiceMessage
-
     fun createErrorMessage(error: String, errorDetails: String? = null): ServiceMessage
 
     fun createFlowStarted(flowId: String, parentFlowId: String): ServiceMessage
@@ -22,4 +20,6 @@ interface MessageFactory {
     fun createBlockOpened(blockName: String, description: String): ServiceMessage
 
     fun createBlockClosed(blockName: String): ServiceMessage
+
+    fun createImportData(type: String, path: String): ServiceMessage
 }

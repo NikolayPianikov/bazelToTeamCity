@@ -12,7 +12,7 @@ class UnknownEventHandler: EventHandler {
 
     override fun handle(ctx: ServiceMessageContext): Boolean {
         if(ctx.verbosity.atLeast(Verbosity.Normal)) {
-            ctx.onNext(ctx.messageFactory.createWarningMessage(
+            ctx.onNext(ctx.messageFactory.createMessage(
                     ctx.buildMessage()
                             .append("Unknown event: ${ctx.event}".apply(Color.Warning))
                             .toString()))

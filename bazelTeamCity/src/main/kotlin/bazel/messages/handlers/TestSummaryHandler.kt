@@ -2,10 +2,11 @@ package bazel.messages.handlers
 
 import bazel.HandlerPriority
 import bazel.Verbosity
-import bazel.atLeast
-import bazel.bazel.events.*
+import bazel.bazel.events.BazelEvent
+import bazel.bazel.events.TestSummary
 import bazel.messages.Color
 import bazel.messages.ServiceMessageContext
+import bazel.messages.apply
 
 class TestSummaryHandler: EventHandler {
     override val priority: HandlerPriority
@@ -16,7 +17,10 @@ class TestSummaryHandler: EventHandler {
             val event = ctx.event.payload.content
             ctx.onNext(ctx.messageFactory.createMessage(
                     ctx.buildMessage()
-                            .append("Test summary: ${event.label}")
+                            .append("${event.label} test summary:")
+                            .append(" ${event.overallStatus}".apply(event.overallStatus.toColor()))
+                            .append(", total: ${event.totalRunCount}", Verbosity.Normal)
+                            .append(", total cached: ${event.totalNumCached}".apply(Color.Details), Verbosity.Detailed)
                             .toString()))
 
             true

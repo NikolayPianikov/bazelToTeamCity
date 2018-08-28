@@ -31,7 +31,7 @@ class ComponentStreamFinishedHandler: EventHandler {
                 FinishType.Expired ->
                     if (ctx.verbosity.atLeast(Verbosity.Minimal)) {
                         val description = "Component \"${ctx.event.payload.streamId.component}\" stream expired"
-                        ctx.onNext(ctx.messageFactory.createWarningMessage(
+                        ctx.onNext(ctx.messageFactory.createMessage(
                                 ctx.buildMessage()
                                         .append(description.apply(Color.Warning))
                                         .append("(${FinishType.Expired.description}), invocation: \"${ctx.event.payload.streamId.invocationId}\", build: \"${ctx.event.payload.streamId.buildId}\"", Verbosity.Detailed)
